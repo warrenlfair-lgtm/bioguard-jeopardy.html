@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioGuard • 5 Steps to Water Care • Jeopardy Game</title>
+  <style>
+    :root{
+      --bg:#061225;
+      --panel:#0b1b35;
+      --tile:#0f2a55;
+      --tileHover:#15396f;
+      --line:#1f3a68;
+      --text:#f5f7ff;
+      --muted:#b7c3dd;
+      --gold:#ffd166;
+      --good:#27c07d;
+      --bad:#ff4d4d;
+
+      /* BioGuard logo backdrop (set via JS or inline here) */
+      --logo-url: none; /* e.g. url('https://.../bioguard-logo.png') */
+      --logo-opacity: 0.10; /* 0.05–0.18 is usually perfect */
+      --logo-size: 700px;   /* try 500–900px */
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 900px at 20% 10%, #0b2a55 0%, var(--bg) 55%, #040a14 100%);
+      min-height:100vh;
+    }
+
+    /* Backdrop watermark */
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image: var(--logo-url);
+      background-repeat:no-repeat;
+      background-position:center;
+      background-size: var(--logo-size);
+      opacity: var(--logo-opacity);
+      filter: saturate(1.1) contrast(1.05);
+    }
+    /* subtle water texture */
+    body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(600px 220px at 30% 35%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(700px 260px at 65% 55%, rgba(255,255,255,0.05), transparent 65%),
+        radial-gradient(500px 220px at 55% 25%, rgba(255,255,255,0.04), transparent 60%);
+      opacity:0.55;
+      mix-blend-mode: overlay;
+    }
+
+    .wrap{
+      position:relative;
+      z-index:1;
+      padding:20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    h1{
+      font-size: clamp(20px, 2.3vw, 30px);
+      margin:0;
+      letter-spacing:0.4px;
+    }
+    .sub{
+      color:var(--muted);
+      font-size: 14px;
+      line-height:1.3;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    button, .pill{
+      border:1px solid rgba(255,255,255,0.15);
+      background: rgba(8, 20, 40, 0.55);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:0.2px;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    button:hover{
+      background: rgba(15, 42, 85, 0.7);
+      border-color: rgba(255,255,255,0.25);
+    }
+    button:active{ transform: translateY(1px) scale(0.99); }
+    .pill{ cursor:default; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap:10px;
+    }
+
+    .cat{
+      background: rgba(11,27,53,0.75);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding:12px 10px;
+      text-align:center;
+      font-weight:800;
+      font-size: 13px;
+      letter-spacing:0.4px;
+      text-transform:uppercase;
+      line-height:1.2;
+      min-height:62px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .tile{
+      background: rgba(15,42,85,0.80);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding:18px 10px;
+      text-align:center;
+      font-weight:900;
+      font-size: clamp(18px, 2.2vw, 30px);
+      color: var(--gold);
+      cursor:pointer;
+      min-height:72px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .tile:hover{ background: rgba(21,57,111,0.85); }
+    .tile.used{
+      cursor:not-allowed;
+      color: rgba(255,255,255,0.22);
+      background: rgba(8, 15, 28, 0.55);
+      border-color: rgba(255,255,255,0.06);
+    }
+    .tile.used:hover{ background: rgba(8, 15, 28, 0.55); }
+
+    .dd-badge{
+      position:absolute;
+      top:8px;
+      right:10px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:0.6px;
+      padding:6px 8px;
+      border-radius:999px;
+      background: rgba(255, 209, 102, 0.14);
+      border:1px solid rgba(255, 209, 102, 0.35);
+      color: var(--gold);
+    }
+
+    .scorebar{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .scorecard{
+      background: rgba(11,27,53,0.70);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .scoreleft{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .label{
+      color:var(--muted);
+      font-size:12px;
+      letter-spacing:0.3px;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+    .score{
+      font-size: 26px;
+      font-weight: 1000;
+      letter-spacing:0.4px;
+    }
+    .scorebtns{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .scorebtns button{
+      padding:10px 12px;
+      border-radius: 14px;
+    }
+
+    /* Modal */
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index: 999;
+    }
+    .modal{
+      width:min(900px, 100%);
+      background: rgba(7, 16, 32, 0.92);
+      border:1px solid rgba(255,255,255,0.16);
+      border-radius: 22px;
+      padding:16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+      position:relative;
+      overflow:hidden;
+    }
+    .modal::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 420px at 10% 10%, rgba(255,209,102,0.08), transparent 55%),
+        radial-gradient(900px 420px at 90% 80%, rgba(39,192,125,0.07), transparent 55%);
+      pointer-events:none;
+    }
+    .modalInner{ position:relative; z-index:1; }
+    .modalTop{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom:10px;
+    }
+    .qmeta{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .qmeta .small{
+      color:var(--muted);
+      font-weight:700;
+      font-size:13px;
+    }
+    .qmeta .big{
+      font-size: 18px;
+      font-weight: 1000;
+      letter-spacing:0.2px;
+    }
+    .closeBtn{
+      background: rgba(255,255,255,0.08);
+    }
+
+    .qbox{
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding:14px;
+      margin-top:10px;
+    }
+    .qtext{
+      font-size: clamp(18px, 2.2vw, 28px);
+      line-height:1.25;
+      font-weight: 900;
+      margin:0;
+    }
+
+    .answer{
+      margin-top:12px;
+      display:none;
+    }
+    .answer .ahead{
+      color:var(--muted);
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+      font-size:12px;
+      margin-bottom:6px;
+    }
+    .answer .atext{
+      font-size: clamp(16px, 1.8vw, 22px);
+      line-height:1.35;
+      margin:0;
+      font-weight:800;
+    }
+
+    .modalActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      justify-content:flex-end;
+    }
+
+    .primary{
+      background: rgba(255, 209, 102, 0.16);
+      border-color: rgba(255, 209, 102, 0.35);
+      color: var(--text);
+    }
+    .primary:hover{
+      background: rgba(255, 209, 102, 0.22);
+      border-color: rgba(255, 209, 102, 0.45);
+    }
+
+    .danger{
+      background: rgba(255, 77, 77, 0.14);
+      border-color: rgba(255, 77, 77, 0.28);
+    }
+    .ok{
+      background: rgba(39, 192, 125, 0.14);
+      border-color: rgba(39, 192, 125, 0.28);
+    }
+
+    .footerNote{
+      margin-top:12px;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
+      line-height:1.35;
+    }
+
+    @media (max-width: 860px){
+      .grid{ gap:8px; }
+      .tile{ min-height:62px; }
+      .cat{ min-height:56px; font-size:12px; }
+    }
+    @media (max-width: 640px){
+      .wrap{ padding:14px; }
+      .grid{ grid-template-columns: repeat(2, 1fr); }
+      .scorebar{ grid-template-columns:1fr; }
+      .cat{ display:none; } /* on small screens, hide category headers for space */
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>BioGuard • 5 Steps to Water Care • Jeopardy Game</h1>
+        <div class="sub">
+          Built for customer education nights + new associate training.
+          <span id="status" class="pill" style="margin-left:8px; padding:6px 10px; display:inline-block;">Progress autosaves</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnFull">Full Screen</button>
+        <button id="btnNewDD">New Daily Double</button>
+        <button id="btnReset" class="danger">Reset Game</button>
+      </div>
+    </header>
+
+    <div class="grid" id="board"></div>
+
+    <div class="scorebar">
+      <div class="scorecard">
+        <div class="scoreleft">
+          <div class="label">Team A</div>
+          <div class="score" id="scoreA">0</div>
+        </div>
+        <div class="scorebtns">
+          <button class="ok" data-team="A" data-delta="100">+100</button>
+          <button class="ok" data-team="A" data-delta="500">+500</button>
+          <button class="danger" data-team="A" data-delta="-100">-100</button>
+          <button class="danger" data-team="A" data-delta="-500">-500</button>
+        </div>
+      </div>
+
+      <div class="scorecard">
+        <div class="scoreleft">
+          <div class="label">Team B</div>
+          <div class="score" id="scoreB">0</div>
+        </div>
+        <div class="scorebtns">
+          <button class="ok" data-team="B" data-delta="100">+100</button>
+          <button class="ok" data-team="B" data-delta="500">+500</button>
+          <button class="danger" data-team="B" data-delta="-100">-100</button>
+          <button class="danger" data-team="B" data-delta="-500">-500</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footerNote">
+      Tip: In the modal, you can add/subtract the tile value to the active team using the score buttons,
+      or use the quick buttons above. Daily Double tile is randomized and marked.
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalBack" id="modalBack">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalInner">
+        <div class="modalTop">
+          <div class="qmeta">
+            <div class="small" id="modalMeta"></div>
+            <div class="big" id="modalTitle"></div>
+          </div>
+          <button class="closeBtn" id="btnClose">Close</button>
+        </div>
+
+        <div class="qbox">
+          <p class="qtext" id="modalQuestion"></p>
+
+          <div class="answer" id="answerBox">
+            <div class="ahead">Answer</div>
+            <p class="atext" id="modalAnswer"></p>
+          </div>
+        </div>
+
+        <div class="modalActions">
+          <button id="btnReveal" class="primary">Reveal Answer</button>
+          <button id="btnMarkUsed">Mark Used</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************
+     * BRANDING / BACKDROP *
+     ***********************/
+    // Paste your BioGuard logo URL here (PNG preferred). Example:
+    // const BIOGUARD_LOGO_URL = "https://yourdomain.com/bioguard-logo.png";
+    const BIOGUARD_LOGO_URL = ""; // <-- put your hosted logo image URL here
+
+    if (BIOGUARD_LOGO_URL && BIOGUARD_LOGO_URL.trim()){
+      document.documentElement.style.setProperty("--logo-url", `url('${BIOGUARD_LOGO_URL.trim()}')`);
+    }
+
+    /***********************
+     * GAME DATA (5 STEPS) *
+     ***********************/
+    const categories = [
+      {
+        name: "Step 1: Test",
+        desc: "Test water regularly",
+        clues: [
+          { v:100, q:"Why is testing BEFORE adding chemicals important?", a:"Because you need current readings to dose correctly; guessing can cause imbalance, wasted product, or unsafe water." },
+          { v:200, q:"Name 3 core things you typically test in pool water.", a:"Sanitizer (chlorine/bromine), pH, and total alkalinity (often also calcium hardness and stabilizer/CYA)." },
+          { v:300, q:"What’s a good rule of thumb for how often to test during swim season?", a:"At least 1–2 times per week, and more often after heavy use, rain, heat waves, or adding water." },
+          { v:400, q:"Why do big changes (rain/party/algae) justify more frequent testing?", a:"They change sanitizer demand and balance quickly, so you must retest to prevent problems from snowballing." },
+          { v:500, q:"If you only had time for ONE quick daily check on a busy week, what should it be and why?", a:"Sanitizer level—because it protects against algae and germs; low sanitizer can turn into a problem fast." },
+        ]
+      },
+      {
+        name: "Step 2: Balance",
+        desc: "pH/TA/CH for comfort + equipment protection",
+        clues: [
+          { v:100, q:"What does balancing water help prevent besides cloudy water?", a:"It helps prevent corrosion, scaling, surface damage, and irritation (eyes/skin), and protects equipment." },
+          { v:200, q:"Which usually gets adjusted first: Total Alkalinity or pH?", a:"Total Alkalinity first, because TA buffers and stabilizes pH." },
+          { v:300, q:"What happens if pH is too high for extended periods?", a:"Sanitizer becomes less effective, scale can form, and water can get cloudy." },
+          { v:400, q:"What happens if pH is too low for extended periods?", a:"Corrosion risk increases, surfaces and metals can be damaged, and swimmers may feel irritation." },
+          { v:500, q:"Explain ‘balance protects money.’ What costs go up when balance is ignored?", a:"More chemical waste, frequent algae cleanups, shortened heater/pump life, stained surfaces, scale removal, and more service calls." },
+        ]
+      },
+      {
+        name: "Step 3: Sanitize",
+        desc: "Keep a residual sanitizer",
+        clues: [
+          { v:100, q:"What is a ‘sanitizer residual’ and why do you want one?", a:"A consistent measurable level of sanitizer in the water; it keeps killing germs and prevents algae between treatments." },
+          { v:200, q:"Why can water look clear but still be unsafe?", a:"Clarity doesn’t guarantee sanitation—germs can be present even in clear water if sanitizer is low." },
+          { v:300, q:"What are two common events that rapidly increase sanitizer demand?", a:"Heavy bather load/parties and storms/rain (also heat and lots of sun can drive demand)." },
+          { v:400, q:"If sanitizer keeps dropping to zero overnight, what’s a likely cause?", a:"There’s a heavy organic load—often early algae growth or contamination—consuming sanitizer quickly (also very low stabilizer in sunny pools can contribute)." },
+          { v:500, q:"In one sentence: what’s the purpose of ‘shock’ vs daily sanitizer?", a:"Shock oxidizes/cleans up contaminants quickly; daily sanitizer maintains a steady protective level." },
+        ]
+      },
+      {
+        name: "Step 4: Shock",
+        desc: "Oxidize contaminants + restore clarity",
+        clues: [
+          { v:100, q:"What is ‘shocking’ mainly trying to remove?", a:"Built-up contaminants like chloramines/combined chlorine and other organics that cause odor/cloudiness/irritation." },
+          { v:200, q:"Name 3 times you should consider shocking.", a:"After heavy use/party, after storms, when water is cloudy or has odor, or when sanitizer demand is unusually high." },
+          { v:300, q:"Why can shocking help with ‘chlorine smell’?", a:"That smell is often chloramines/combined chlorine—shocking oxidizes them, improving air and water quality." },
+          { v:400, q:"If a customer says ‘I have algae starting,’ how does shock fit into the response?", a:"Shock is part of the recovery plan—raise sanitizer/oxidation to break the problem, then maintain sanitizer and brush/filtration." },
+          { v:500, q:"What’s a simple ‘education night’ explanation of shock in plain English?", a:"Shock is like a deep-clean that burns off the gunk sanitizer is fighting, so your regular chlorine works better." },
+        ]
+      },
+      {
+        name: "Step 5: Prevent",
+        desc: "Routine care to avoid problems",
+        clues: [
+          { v:100, q:"What’s the easiest prevention habit that avoids most pool problems?", a:"Consistent testing and maintaining sanitizer + balance weekly (small corrections before they become big ones)." },
+          { v:200, q:"Why does brushing help prevent algae?", a:"It disrupts biofilms and removes algae starting to attach to surfaces so sanitizer can work better." },
+          { v:300, q:"How do filter run time and circulation connect to prevention?", a:"Good circulation and adequate run time help distribute chemicals, improve filtration, and reduce dead spots where algae starts." },
+          { v:400, q:"What’s one prevention tip after adding lots of fresh water (top-off/refill)?", a:"Retest and rebalance—fresh water can change pH/alkalinity/calcium and dilute stabilizer/sanitizer." },
+          { v:500, q:"Give a ‘weekly checklist’ for prevention in 5 bullets.", a:"1) Test & log 2) Adjust TA/pH 3) Verify sanitizer residual 4) Brush & skim 5) Check filter/clean baskets + shock as needed." },
+        ]
+      }
+    ];
+
+    const values = [100,200,300,400,500];
+
+    /***********************
+     * STATE + PERSISTENCE *
+     ***********************/
+    const STORAGE_KEY = "bioguard_jeopardy_state_v1";
+
+    const state = {
+      used: {},  // key -> true
+      scoreA: 0,
+      scoreB: 0,
+      dailyDoubleKey: null
+    };
+
+    function keyFor(ci, vi){ return `${ci}:${vi}`; }
+
+    function save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setStatus("Saved");
+      setTimeout(()=>setStatus("Progress autosaves"), 700);
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return;
+        const parsed = JSON.parse(raw);
+        Object.assign(state, parsed);
+      }catch(e){
+        console.warn("Load failed:", e);
+      }
+    }
+
+    function setStatus(t){
+      const el = document.getElementById("status");
+      if(el) el.textContent = t;
+    }
+
+    /***********************
+     * RENDER BOARD *
+     ***********************/
+    const boardEl = document.getElementById("board");
+
+    function render(){
+      boardEl.innerHTML = "";
+
+      // category headers
+      for(let ci=0; ci<categories.length; ci++){
+        const c = categories[ci];
+        const head = document.createElement("div");
+        head.className = "cat";
+        head.title = c.desc;
+        head.textContent = c.name;
+        boardEl.appendChild(head);
+      }
+
+      // tiles 5 rows x 5 cols
+      for(let ri=0; ri<values.length; ri++){
+        for(let ci=0; ci<categories.length; ci++){
+          const v = values[ri];
+          const t = document.createElement("div");
+          t.className = "tile";
+
+          const k = keyFor(ci, ri);
+          const isUsed = !!state.used[k];
+          const isDD = (state.dailyDoubleKey === k);
+
+          t.dataset.ci = ci;
+          t.dataset.ri = ri;
+
+          if(isUsed){
+            t.classList.add("used");
+            t.textContent = "—";
+          } else {
+            t.textContent = `$${v}`;
+            t.addEventListener("click", ()=>openClue(ci, ri));
+          }
+
+          if(isDD && !isUsed){
+            const badge = document.createElement("div");
+            badge.className = "dd-badge";
+            badge.textContent = "DAILY DOUBLE";
+            t.appendChild(badge);
+          }
+
+          boardEl.appendChild(t);
+        }
+      }
+
+      document.getElementById("scoreA").textContent = state.scoreA;
+      document.getElementById("scoreB").textContent = state.scoreB;
+    }
+
+    /***********************
+     * MODAL LOGIC *
+     ***********************/
+    const modalBack = document.getElementById("modalBack");
+    const modalMeta = document.getElementById("modalMeta");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalQuestion = document.getElementById("modalQuestion");
+    const modalAnswer = document.getElementById("modalAnswer");
+    const answerBox = document.getElementById("answerBox");
+    const btnReveal = document.getElementById("btnReveal");
+    const btnMarkUsed = document.getElementById("btnMarkUsed");
+    const btnClose = document.getElementById("btnClose");
+
+    let active = { ci:null, ri:null };
+
+    function openClue(ci, ri){
+      active = { ci, ri };
+      const cat = categories[ci];
+      const clue = cat.clues[ri];
+
+      modalMeta.textContent = `${cat.name} • $${clue.v}`;
+      modalTitle.textContent = "Question";
+      modalQuestion.textContent = clue.q;
+      modalAnswer.textContent = clue.a;
+
+      answerBox.style.display = "none";
+      btnReveal.textContent = "Reveal Answer";
+
+      // Daily Double special title
+      const k = keyFor(ci, ri);
+      if(state.dailyDoubleKey === k){
+        modalTitle.textContent = "DAILY DOUBLE";
+      }
+
+      modalBack.style.display = "flex";
+    }
+
+    function closeModal(){
+      modalBack.style.display = "none";
+      active = { ci:null, ri:null };
+    }
+
+    btnClose.addEventListener("click", closeModal);
+    modalBack.addEventListener("click", (e)=>{
+      if(e.target === modalBack) closeModal();
+    });
+    document.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape" && modalBack.style.display === "flex") closeModal();
+    });
+
+    btnReveal.addEventListener("click", ()=>{
+      const showing = (answerBox.style.display === "block");
+      if(showing){
+        answerBox.style.display = "none";
+        btnReveal.textContent = "Reveal Answer";
+      }else{
+        answerBox.style.display = "block";
+        btnReveal.textContent = "Hide Answer";
+      }
+    });
+
+    btnMarkUsed.addEventListener("click", ()=>{
+      if(active.ci === null) return;
+      const k = keyFor(active.ci, active.ri);
+      state.used[k] = true;
+
+      // if DD was used, clear it
+      if(state.dailyDoubleKey === k){
+        state.dailyDoubleKey = null;
+      }
+
+      save();
+      render();
+      closeModal();
+    });
+
+    /***********************
+     * SCORE BUTTONS *
+     ***********************/
+    document.querySelectorAll(".scorebtns button").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const team = btn.dataset.team;
+        const delta = parseInt(btn.dataset.delta, 10) || 0;
+        if(team === "A") state.scoreA += delta;
+        if(team === "B") state.scoreB += delta;
+        save();
+        render();
+      });
+    });
+
+    /***********************
+     * DAILY DOUBLE *
+     ***********************/
+    function pickDailyDouble(){
+      // pick a random unused tile
+      const candidates = [];
+      for(let ci=0; ci<categories.length; ci++){
+        for(let ri=0; ri<values.length; ri++){
+          const k = keyFor(ci, ri);
+          if(!state.used[k]) candidates.push(k);
+        }
+      }
+      if(candidates.length === 0){
+        state.dailyDoubleKey = null;
+        return;
+      }
+      const pick = candidates[Math.floor(Math.random()*candidates.length)];
+      state.dailyDoubleKey = pick;
+    }
+
+    document.getElementById("btnNewDD").addEventListener("click", ()=>{
+      pickDailyDouble();
+      save();
+      render();
+    });
+
+    /***********************
+     * FULL SCREEN *
+     ***********************/
+    document.getElementById("btnFull").addEventListener("click", async ()=>{
+      try{
+        if(!document.fullscreenElement){
+          await document.documentElement.requestFullscreen();
+        }else{
+          await document.exitFullscreen();
+        }
+      }catch(e){
+        alert("Full screen may be blocked by your browser settings.");
+      }
+    });
+
+    /***********************
+     * RESET *
+     ***********************/
+    document.getElementById("btnReset").addEventListener("click", ()=>{
+      const ok = confirm("Reset the board + scores? This cannot be undone.");
+      if(!ok) return;
+      state.used = {};
+      state.scoreA = 0;
+      state.scoreB = 0;
+      state.dailyDoubleKey = null;
+      save();
+      render();
+    });
+
+    /***********************
+     * INIT *
+     ***********************/
+    load();
+    if(!state.dailyDoubleKey){
+      pickDailyDouble();
+    }
+    render();
+  </script>
+</body>
+</html>
