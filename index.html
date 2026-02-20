@@ -159,6 +159,26 @@
       position:relative;
       overflow:hidden;
     }
+    .tile::before{
+  content:"";
+  position:absolute;
+  inset:10px;
+  background-image: var(--logo-url);
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size: contain;
+  opacity: 0.22;
+  pointer-events:none;
+}
+
+.tile > *{
+  position:relative;
+  z-index:1;
+}
+
+.tile.used::before{
+  opacity:0;
+}
     .tile:hover{ background: rgba(21,57,111,0.85); }
     .tile.used{
       cursor:not-allowed;
